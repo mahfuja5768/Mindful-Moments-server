@@ -17,7 +17,6 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 
-
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.mz3fw7v.mongodb.net/?retryWrites=true&w=majority`;
 // console.log(uri)
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -38,19 +37,19 @@ async function run() {
       .db("Mindful-Moments-Today")
       .collection("allBlogs");
 
+    const reviewsCollection = client
+      .db("Mindful-Moments-Today")
+      .collection("reviews");
+
     const wishlistCollection = client
       .db("Mindful-Moments-Today")
       .collection("wishlists");
-
-    const newAddedBlogCollection = client
-      .db("Mindful-Moments-Today")
-      .collection("newAddedBlogs");
 
     const usersCollection = client
       .db("Mindful-Moments-Today")
       .collection("users");
 
-       // auth related api
+    // auth related api
     app.post("/jwt", async (req, res) => {
       const user = req.body;
       console.log("I need a new jwt", user);
@@ -79,6 +78,52 @@ async function run() {
         console.log("Logout successful");
       } catch (err) {
         res.status(500).send(err);
+      }
+    });
+
+
+      //add review
+      app.post("/reviews", async (req, res) => {
+        try {
+          const review = req.body;
+          const result = await reviewsCollection.insertOne(review);
+          res.send(result);
+        } catch (error) {
+          console.log(error);
+        }
+      });
+  
+      //get reviews
+      app.get("/reviews", async (req, res) => {
+        try {
+          let query = {};
+          if (req.query?.email) {
+            query = { email: req.query.email };
+          }
+          const result = await reviewsCollection
+            .find(query)
+            .sort({ date: -1 })
+            .toArray();
+          res.send(result);
+        } catch (error) {
+          console.log(error);
+        }
+      });
+  
+
+    //all blogs title
+    app.get("/topics", async (req, res) => {
+      try {
+        let query = {};
+        const options = {
+          projection: {
+            topics: 1,
+          },
+        };
+        const result = await blogCollection.find(query, options).toArray();
+        res.send(result);
+      } catch (error) {
+        console.log(error);
       }
     });
 
@@ -144,6 +189,10 @@ async function run() {
     app.get("/recent-blogs", async (req, res) => {
       try {
         let query = {};
+        if (req.query.topics) {
+          query.topics = req.query.topics;
+        }
+
         const result = await blogCollection
           .find(query)
           .sort({ date: -1 })
@@ -158,17 +207,11 @@ async function run() {
     //get all Blogs
     app.get("/all-blogs", async (req, res) => {
       try {
-        const options = {
-          projection: {
-            title: 1,
-            author: 1,
-            likedCount: 1,
-            date: 1,
-            description: 1,
-          },
-        };
-        // const result = await blogCollection.find(query, options).toArray();
-        const result = await blogCollection.find().toArray();
+        let query = {};
+        if (req.query.topics) {
+          query.topics = req.query.topics;
+        }
+        const result = await blogCollection.find(query).toArray();
         res.send(result);
       } catch (error) {
         console.log(error);
@@ -190,8 +233,8 @@ async function run() {
     //add to wishlist
     app.post("/add-to-wishlist", async (req, res) => {
       try {
-        const blogId = req.body;
-        const result = await wishlistCollection.insertOne(blogId);
+        const blog = req.body;
+        const result = await wishlistCollection.insertOne(blog);
         res.json(result);
       } catch (error) {
         console.log(error);
@@ -216,8 +259,11 @@ async function run() {
     app.delete("/delete-wishlist-blog/:id", async (req, res) => {
       try {
         const id = req.params.id;
+        console.log(id);
         const query = { _id: new ObjectId(id) };
+        console.log(query);
         const result = await wishlistCollection.deleteOne(query);
+        console.log(result);
         res.send(result);
       } catch (error) {
         console.log(error);
@@ -228,8 +274,9 @@ async function run() {
     app.post("/add-new-blog", async (req, res) => {
       try {
         const newBlog = req.body;
-        newBlog.timestamp = Date.now();
-        const result = await newAddedBlogCollection.insertOne(newBlog);
+        console.log(newBlog);
+        const result = await blogCollection.insertOne(newBlog);
+        console.log(result);
         res.json(result);
       } catch (error) {
         console.log(error);
@@ -244,7 +291,7 @@ async function run() {
         if (req.query?.email) {
           query = { email: req.query.email };
         }
-        const result = await newAddedBlogCollection.find(query).toArray();
+        const result = await blogCollection.find(query).toArray();
         res.send(result);
       } catch (error) {
         console.log(error);
@@ -263,7 +310,7 @@ async function run() {
           $set: { ...body },
         };
         const option = { upsert: true };
-        const result = await newAddedBlogCollection.updateOne(
+        const result = await blogCollection.updateOne(
           query,
           updatedBlog,
           option
@@ -281,7 +328,7 @@ async function run() {
         const id = req.params.id;
         console.log(id);
         const query = { _id: new ObjectId(id) };
-        const result = await newAddedBlogCollection.deleteOne(query);
+        const result = await blogCollection.deleteOne(query);
         console.log(result);
         res.send(result);
       } catch (error) {
@@ -289,23 +336,11 @@ async function run() {
       }
     });
 
-    //admin add specific blog into all blogs
-    app.post("/add-blog", async (req, res) => {
-      try {
-        const newBlog = req.body;
-        const result = await blogCollection.insertOne(newBlog);
-        res.json(result);
-      } catch (error) {
-        console.log(error);
-        res.status(500).json({ error: "Internal Server Error" });
-      }
-    });
-
     // Save or modify user email, status in DB
     app.put("/users/:email", async (req, res) => {
       const email = req.params.email;
       const user = req.body;
-      console.log(user)
+      console.log(user);
       const query = { email: email };
       const options = { upsert: true };
       const isExist = await usersCollection.findOne(query);
@@ -318,7 +353,7 @@ async function run() {
         },
         options
       );
-      console.log(result)
+      console.log(result);
       res.send(result);
     });
 
