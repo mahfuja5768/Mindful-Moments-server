@@ -5,11 +5,15 @@ const cookieParser = require("cookie-parser");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const jwt = require("jsonwebtoken");
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 8000;
 
 // middleware
 const corsOptions = {
-  origin: ["http://localhost:5173", "http://localhost:5174"],
+  origin: [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "https://mindful-moments-a.netlify.app",
+  ],
   credentials: true,
   optionSuccessStatus: 200,
 };
