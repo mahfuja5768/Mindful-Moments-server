@@ -4,8 +4,7 @@ const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
-
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 8000;
 
 app.use(cors());
 app.use(express.json());
@@ -71,9 +70,7 @@ async function run() {
         if (req.query?.email) {
           query = { email: req.query.email };
         }
-        const result = await reviewsCollection
-          .find(query)
-          .toArray();
+        const result = await reviewsCollection.find(query).toArray();
         res.send(result);
       } catch (error) {
         console.log(error);
@@ -186,6 +183,8 @@ async function run() {
         console.log(error);
       }
     });
+
+   
 
     //get single Blog
     app.get("/get-single-blog/:id", async (req, res) => {
