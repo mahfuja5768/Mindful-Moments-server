@@ -170,6 +170,19 @@ async function run() {
       }
     });
 
+    //get foods by name
+    app.get("/search-blogs/:title", async (req, res) => {
+      try {
+        const title = req.params.title;
+        let query = { title: title };
+        console.log(title);
+        const result = await allFoodCollection.find(query).toArray();
+        res.send(result);
+      } catch (error) {
+        console.log(error);
+      }
+    });
+
     //get all Blogs
     app.get("/all-blogs", async (req, res) => {
       try {
@@ -326,10 +339,10 @@ async function run() {
     });
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
+    // await client.db("admin").command({ ping: 1 });
+    // console.log(
+    //   "Pinged your deployment. You successfully connected to MongoDB!"
+    // );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
