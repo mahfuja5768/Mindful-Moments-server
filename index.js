@@ -197,7 +197,19 @@ async function run() {
       }
     });
 
-   
+    //get all Blogs of a user
+    app.get("/owners-blogs", async (req, res) => {
+      try {
+        let query = {};
+        if (req.query?.author) {
+          query = { author: req.query.author };
+        }
+        const result = await blogCollection.find(query).toArray();
+        res.send(result);
+      } catch (error) {
+        console.log(error);
+      }
+    });
 
     //get single Blog
     app.get("/get-single-blog/:id", async (req, res) => {
